@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profiles
+    match /users/{userId} {
+      // Allow read of user profiles only for authenticated users
+      // But restrict to only reading your own full profile or limited search
+      allow read: if request.auth != null && 
+                  (userId == request.auth.uid || 
+                   request.query.limit <= 10);
+      
+      // Only allow writing to your own profile
+      allow write: if request.auth != null && 
+                   request.auth.uid == userId;
+    }
+    
+    // Tasks (with explicit orderBy permissions)
+    match /tasks/{taskId} {
+      // Allow ANY query as long as it's for the user's own tasks
+      // or tasks shared with them - including any orderBy operation
+      allow read: if request.auth != null && (
+                    // One of these conditions must be true
+                    resource.data.userId == request.auth.uid || 
+                    request.auth.uid in resource.data.get('sharedWith', [])
+                  );
+      
+      // Allow creating tasks if the user is the owner
+      allow create: if request.auth != null && 
+                    request.resource.data.userId == request.auth.uid;
+      
+      // Allow full updates and deletes for task owners
+      allow update, delete: if request.auth != null && 
+                             resource.data.userId == request.auth.uid;
+      
+      // Allow limited updates for users in sharedWith array
+      allow update: if request.auth != null && 
+                    request.auth.uid in resource.data.get('sharedWith', []) &&
+                    request.resource.data.diff(resource.data)
+                      .affectedKeys()
+                      .hasOnly(['isCompleted', 'subtasks']);
+    }
+  }
+}
