@@ -31,7 +31,7 @@ A comprehensive task management application built with Flutter that allows users
 ### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/yourusername/taskflow.git
-cd taskflow
+cd task_management_app
 ```
 
 ### Step 2: Install Dependencies
